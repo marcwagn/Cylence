@@ -373,7 +373,7 @@ class ConnCompAnalysis():
         while(found):
             found = False
             for u,v,key,edata in self.G.edges(keys=True, data=True):
-                if (edata['length'] < self.fila_width):
+                if (edata['length'] < 2*self.fila_width):
                     #get points
                     if u != v:
                         y = np.concatenate((self.G.nodes[u]['points'][0],
