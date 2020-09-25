@@ -262,6 +262,9 @@ class ConnCompAnalysis():
 
         #check if inner node can be removed
         for node in check_lst:
+            #node already removed
+            if not self.G.has_node(node):
+                continue
             if self.G.degree[node] == 2 and len(list(self.G.neighbors(node))) == 2:
                 neigh1, neigh2 = list(self.G.neighbors(node))
                 self.joinEdges(node,neigh1,0,None,node, neigh2, 0, None)

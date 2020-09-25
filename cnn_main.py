@@ -26,19 +26,30 @@ from quantification.quantification import quantify
 #define input parameters
 parser = argparse.ArgumentParser(description='CNN based analysis')
 parser.add_argument('--inPath', required=True, help='input folder')
-parser.add_argument('--outPath', required=True, help='output folder')
+parser.add_argument('--predPath', required=True, help='output folder prediction')
+parser.add_argument('--outPath', required=True, help='output folder analysis')
 args = parser.parse_args()
 
 #load model
 model = model_from_checkpoint_path("cnn_detection/model/vgg_unet_cross_aug_ep100_51_100/vgg_unet_1")
+model = model_from_checkpoint_path("cnn_detection/model/test/vgg_unet_focal")
 
 #load input images from input folder
 img_name_arr = [os.path.basename(x) for x in glob.glob(args.inPath+'/*')]
 
 for img_name in img_name_arr:
+    print('Read image: ' + img_name)
     img = cv2.imread(args.inPath+'/'+img_name)
+
+    print('Create segmentation map: ' + img_name)
     pred = predictTiled(img,model)
 
+    print('Save segmentation map: ' + img_name)
+    cv2.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.png', pred)
+    #TODO: remove continue
+    continue
+
+    print('Quantify prevalence: ' + img_name)
     num_filaments, num_infected_filaments = quantify(img,pred)
 
     #create overlay
@@ -52,4 +63,5 @@ for img_name in img_name_arr:
                       (10,80), cv2.FONT_HERSHEY_SIMPLEX,
                       1, (0,0,0), 2, cv2.LINE_AA) 
 
+    print('Save quantification: ' + img_name)
     cv2.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.png', overlay)
