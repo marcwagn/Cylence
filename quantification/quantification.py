@@ -25,6 +25,11 @@ def quantify(img, pred):
     bin_infection = pred[:,:,2] // 255
     bin_filament = pred[:,:,1] // 255
 
+    #closing binary filament
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+    bin_filament = cv2.morphologyEx(bin_filament, cv2.MORPH_CLOSE, kernel)
+
+    #find connected components
     conn_comp = cv2.connectedComponentsWithStats(bin_filament , cv2.CV_32S, connectivity=8)
 
     #result parameter
@@ -56,8 +61,9 @@ def quantify(img, pred):
 
         if (my_cnnCmp.checkResolvedGraph()):
             #count total number of filaments
-            num_filaments += nx.number_connected_components(my_cnnCmp.G)
-            num_infected_filaments += my_cnnCmp.countInfected(bin_infection)
+            newFila, newInf = my_cnnCmp.quantifyParameter(bin_infection)
+            num_filaments += newFila
+            num_infected_filaments += newInf
         
         my_cnnCmp.visualizeGraph(sub_img)
     

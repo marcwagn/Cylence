@@ -34,6 +34,11 @@ class ConnCompAnalysis():
         #create Graph
         self.G = nx.MultiGraph()
 
+        #set hyperparameter resolveNode/resolveNodePair
+        self.max_dist = 15
+        self.max_angle = 90
+        self.max_mean_dev = 5.0
+
     def estimateWidthFilaments(self, step=1):
         """ 
         Args:
@@ -199,15 +204,18 @@ class ConnCompAnalysis():
                                 endpoints = [(endpoint_idx_1,endpoint_1),(endpoint_idx_2,endpoint_2)]
                                 )
 
-    def visualizeGraph(self, img):
+    def visualizeGraph(self, img, bold = True):
         """
         Args:
             img: rgb image 
         Returns:
             rbg image with colored graph
         """
-        size_vec = [-1,0,1]
-        size_vec = [0]
+        if bold:
+            size_vec = [-1,0,1]
+        else:
+            size_vec = [0]
+
         #draw edges
         h, w, _ = img.shape
         for _,_,edata in self.G.edges(data=True):
@@ -364,7 +372,7 @@ class ConnCompAnalysis():
 
         return new_node
 
-    def createHyperNodes(self):
+    def createHyperNodes(self, alphaHyper = 3):
         """
         Args:
         Returns:
@@ -376,7 +384,7 @@ class ConnCompAnalysis():
         while(found):
             found = False
             for u,v,key,edata in self.G.edges(keys=True, data=True):
-                if (edata['length'] < 2*self.fila_width):
+                if (edata['length'] < alphaHyper * self.fila_width):
                     #get points
                     if u != v:
                         y = np.concatenate((self.G.nodes[u]['points'][0],
@@ -464,7 +472,7 @@ class ConnCompAnalysis():
                     
                     break
 
-    def resolveNode(self, node, max_dist = 15, max_angle = 90, max_mean_dev = 5.0):
+    def resolveNode(self, node):
         """
         Args:
             node: given node
@@ -491,8 +499,8 @@ class ConnCompAnalysis():
             dist_lst = []
             for (u1,v1,k1,end1), (u2,v2,k2,end2) in edge_comb_lst:
                 #get points with given distance
-                points1 = filterPoints(self.G[u1][v1][k1]['points'],end1[1],end1[0], max_dist)
-                points2 = filterPoints(self.G[u2][v2][k2]['points'],end2[1],end2[0], max_dist)
+                points1 = filterPoints(self.G[u1][v1][k1]['points'],end1[1],end1[0], self.max_dist)
+                points2 = filterPoints(self.G[u2][v2][k2]['points'],end2[1],end2[0], self.max_dist)
                 points = (np.concatenate((points1[0],points2[0])),np.concatenate((points1[1],points2[1])))
                 
                 #fit line + sum distances
@@ -509,7 +517,7 @@ class ConnCompAnalysis():
             min_idx = sum_dist_lst.index(min(sum_dist_lst))
 
             edge1, edge2 = edge_comb_lst[min_idx]
-            if (dist_lst[min_idx][0] < np.radians(max_angle)) and (dist_lst[min_idx][1] < max_mean_dev):
+            if (dist_lst[min_idx][0] < np.radians(self.max_angle)) and (dist_lst[min_idx][1] < self.max_mean_dev):
                 self.joinEdges(edge1[0],edge1[1],edge1[2],edge1[3],edge2[0],edge2[1],edge2[2], edge2[3])
             else:
                 if edge1[0] == edge2[0] and edge1[1] == edge2[1] and edge1[2] == edge2[2]:
@@ -521,7 +529,7 @@ class ConnCompAnalysis():
             
         self.G.remove_node(node)
 
-    def resolveNodePair(self, node1, node2, max_dist = 30, max_angle = 90, max_mean_dev = 5.0):
+    def resolveNodePair(self, node1, node2):
         """
         Args:
         Returns:
@@ -567,8 +575,8 @@ class ConnCompAnalysis():
             dist_lst = []
             for (u1,v1,k1,end1), (u2,v2,k2,end2) in edge_comb_lst:
                 #get points with given distance
-                points1 = filterPoints(self.G[u1][v1][k1]['points'],end1[1],end1[0], max_dist)
-                points2 = filterPoints(self.G[u2][v2][k2]['points'],end2[1],end2[0], max_dist)
+                points1 = filterPoints(self.G[u1][v1][k1]['points'],end1[1],end1[0], self.max_dist)
+                points2 = filterPoints(self.G[u2][v2][k2]['points'],end2[1],end2[0], self.max_dist)
                 points = (np.concatenate((points1[0],points2[0])),np.concatenate((points1[1],points2[1])))
                 
                 #fit line + sum distances
@@ -585,7 +593,7 @@ class ConnCompAnalysis():
             min_idx = sum_dist_lst.index(min(sum_dist_lst))
             
             edge1, edge2 = edge_comb_lst[min_idx]
-            if (dist_lst[min_idx][0] < np.radians(max_angle)) and (dist_lst[min_idx][1] < max_mean_dev):
+            if (dist_lst[min_idx][0] < np.radians(self.max_angle)) and (dist_lst[min_idx][1] < self.max_mean_dev):
                 self.joinEdges(edge1[0],edge1[1],edge1[2],edge1[3],edge2[0],edge2[1],edge2[2],edge2[3])
                 if edge1[0] != edge2[0]:
                     crossing = True
@@ -700,20 +708,30 @@ class ConnCompAnalysis():
                 check = False
         return check
 
-    def countInfected(self, infection_map, area=25, thres=10):
+    def quantifyParameter(self, infection_map, area=25, thres=10, minLen=20):
         """
         Args:
             infection_map: binary feature map of infection (1 == infection)
             area (+ fila width): defines diameter of the search space
             thres: minimal number of infected pixel
         Returns:
+            number of filaments
+            number of infected filaments
 
         """
-        #create circular kernel
+        #radius quadratic kernel
         r = (self.fila_width + area) // 2
-        count = 0
+        
+        countFilament = 0
+        countInfected = 0
 
         for _,_,_,data in self.G.edges(keys=True,data=True):
+            #count filaments
+            if data['length'] >= minLen:
+                countFilament += 1
+            else:
+                continue
+            #count infected filaments
             check_infection = False
             for endpoint in data['endpoints']:
                 end_y,end_x = endpoint[1][0] + self.y, endpoint[1][1] + self.x
@@ -728,8 +746,9 @@ class ConnCompAnalysis():
                     check_infection = True
     
             if check_infection == True:
-                count += 1
-        return count
+                countInfected += 1
+        
+        return (countFilament, countInfected)
 
     ### 
     ### helper functions
