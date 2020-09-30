@@ -13,7 +13,7 @@ import networkx as nx
 
 import matplotlib.pyplot as plt
 
-def quantify(img, pred):
+def quantify(img, pred, para):
     """
     args:
         pred: colored image prediction
@@ -26,9 +26,11 @@ def quantify(img, pred):
     bin_filament = pred[:,:,1] // 255
 
     #closing binary filament
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
+    closingDist = int(para['closingDist'])
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(closingDist,closingDist))
     bin_filament = cv2.morphologyEx(bin_filament, cv2.MORPH_CLOSE, kernel)
 
+    img_h, img_w, = bin_filament.shape
     #find connected components
     conn_comp = cv2.connectedComponentsWithStats(bin_filament , cv2.CV_32S, connectivity=8)
 
@@ -40,19 +42,30 @@ def quantify(img, pred):
     for idx in range(1,conn_comp[0]):
         #create subimage of CC
         x, y, width, height, _ = conn_comp[2][idx]
+
+        #filter bordering filaments
+        minBorder = int(para['minBorder'])
+        if (x < minBorder) or (y < minBorder) or \
+            (y+height > img_h - minBorder) or (x + width > img_w - minBorder):
+            continue
+
         sub_img = img[y:y+height, x:x+width]
         sub_bin_filament = conn_comp[1][y:y+height, x:x+width]
 
         #find pixel in CC
         conn_comp_pxl = np.where(sub_bin_filament == idx)
         my_cnnCmp = ConnCompAnalysis(conn_comp_pxl, conn_comp[2][idx])
+        #set class hyperparameter
+        my_cnnCmp.max_dist = int(para['maxDist'])
+        my_cnnCmp.max_angle = int(para['maxAngle'])
+        my_cnnCmp.max_mean_dev = float(para['maxMeanDev'])
 
         if not my_cnnCmp.checkConnCompSize():
             continue
         
         my_cnnCmp.createGraph()
         my_cnnCmp.pruneGraph()
-        my_cnnCmp.createHyperNodes()
+        my_cnnCmp.createHyperNodes(alphaHyper = int(para['alphaHyper']))
 
         my_cnnCmp.resolveEvenHyperNodes()
         my_cnnCmp.resolveOddNodes()
@@ -61,7 +74,10 @@ def quantify(img, pred):
 
         if (my_cnnCmp.checkResolvedGraph()):
             #count total number of filaments
-            newFila, newInf = my_cnnCmp.quantifyParameter(bin_infection)
+            newFila, newInf = my_cnnCmp.quantifyParameter(bin_infection, 
+                                                            area = int(para['area']),
+                                                            thres = int(para['thres']), 
+                                                            minLen = int(para['minLen']))
             num_filaments += newFila
             num_infected_filaments += newInf
         

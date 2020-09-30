@@ -207,7 +207,8 @@ class ConnCompAnalysis():
     def visualizeGraph(self, img, bold = True):
         """
         Args:
-            img: rgb image 
+            img: rgb image
+            bold: analysed filaments are marked with bold line (True/False) 
         Returns:
             rbg image with colored graph
         """
