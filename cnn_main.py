@@ -10,11 +10,11 @@ o       o
     \____\____\______/// |topic:   CNN main script
 ########################################################
 """
-
+import os
+from skimage.io import imread
 import numpy as np
 import cv2
 import glob
-import os
 import argparse
 import configparser
 
@@ -46,7 +46,7 @@ else:
 
 for img_name in img_name_arr:
     print('Read image: ' + img_name)
-    img = cv2.imread(inPath+'/'+img_name)
+    img = imread(inPath+'/'+img_name)
 
     print('Create segmentation map: ' + img_name)
     pred = predictTiled(img,model)
