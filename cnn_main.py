@@ -17,6 +17,7 @@ import cv2
 import glob
 import argparse
 import configparser
+import csv
 
 from tqdm import tqdm
 
@@ -62,6 +63,10 @@ for img_name in img_name_arr:
     para = config['hyperparameter']
 
     num_filaments, num_infected_filaments = quantify(img, pred, para)
+    if num_filaments == 0:
+        prev_of_infection = 0
+    else:
+        prev_of_infection = num_infected_filaments / num_filaments
 
     #create overlay
     overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0)
@@ -76,3 +81,14 @@ for img_name in img_name_arr:
 
     print('Save quantification: ' + img_name)
     tifi.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif', overlay[:,:,::-1])
+
+    with open(args.outPath+'/'+os.path.splitext(img_name)[0] + '.csv', mode='w') as stat_file:
+        stat_writer = csv.writer(stat_file, 
+                                 delimiter=',', 
+                                 quotechar='"', 
+                                 quoting=csv.QUOTE_MINIMAL)
+        stat_writer.writerow(['file_name', 'detected_filaments', 'infected_filaments', 'PoI'])
+        stat_writer.writerow([os.path.splitext(img_name)[0],
+                              num_filaments, 
+                              num_infected_filaments,
+                              prev_of_infection])

@@ -80,7 +80,7 @@ class ConnCompAnalysis():
         
         return size
 
-    def checkConnCompSize(self):
+    def checkConnCompSize(self, maxWidth, minWidth, minSize):
         """
         Args:
             self.fila_width: extimated filament width
@@ -90,11 +90,9 @@ class ConnCompAnalysis():
         """
         if self.fila_width > 30:
             return False
-        if self.fila_width <= 5:
+        if self.fila_width < 10:
             return False
         if self.size < (self.fila_width * 2 * self.fila_width):
-            return False
-        if self.size < (200):
             return False
 
         return True

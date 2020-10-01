@@ -60,7 +60,9 @@ def quantify(img, pred, para):
         my_cnnCmp.max_angle = int(para['maxAngle'])
         my_cnnCmp.max_mean_dev = float(para['maxMeanDev'])
 
-        if not my_cnnCmp.checkConnCompSize():
+        if not my_cnnCmp.checkConnCompSize( int(para['maxWidth']), 
+                                            int(para['minWidth']),
+                                            int(para['minSize'])):
             continue
         
         my_cnnCmp.createGraph()
