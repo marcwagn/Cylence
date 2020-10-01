@@ -726,12 +726,15 @@ class ConnCompAnalysis():
         countFilament = 0
         countInfected = 0
 
-        for _,_,_,data in self.G.edges(keys=True,data=True):
+        for u,v,_,data in list(self.G.edges(keys=True,data=True)):
             #count filaments
             if data['length'] >= minLen:
                 countFilament += 1
             else:
+                self.G.remove_node(u)
+                self.G.remove_node(v)
                 continue
+
             #count infected filaments
             check_infection = False
             for endpoint in data['endpoints']:

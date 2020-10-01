@@ -11,7 +11,7 @@ o       o
 ########################################################
 """
 import os
-from skimage.io import imread
+import tifffile as tifi
 import numpy as np
 import cv2
 import glob
@@ -46,13 +46,14 @@ else:
 
 for img_name in img_name_arr:
     print('Read image: ' + img_name)
-    img = imread(inPath+'/'+img_name)
+    img = tifi.imread(inPath+'/'+img_name)
+    img = img[:,:,::-1].copy()
 
     print('Create segmentation map: ' + img_name)
     pred = predictTiled(img,model)
 
     print('Save segmentation map: ' + img_name)
-    cv2.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.png', pred)
+    tifi.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.tif', pred[:,:,::-1])
 
     print('Quantify prevalence: ' + img_name)
     #read quantification config file
@@ -63,7 +64,7 @@ for img_name in img_name_arr:
     num_filaments, num_infected_filaments = quantify(img, pred, para)
 
     #create overlay
-    overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0,dtype = cv2.CV_32F)
+    overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0)
 
     #add text
     res = cv2.putText(overlay, 'num. detected filaments = ' + str(num_filaments), 
@@ -74,4 +75,4 @@ for img_name in img_name_arr:
                       1, (0,0,0), 2, cv2.LINE_AA) 
 
     print('Save quantification: ' + img_name)
-    cv2.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.png', overlay)
+    tifi.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif', overlay[:,:,::-1])
