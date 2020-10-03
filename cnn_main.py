@@ -54,7 +54,12 @@ for img_name in img_name_arr:
     pred = predictTiled(img,model)
 
     print('Save segmentation map: ' + img_name)
-    tifi.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.tif', pred[:,:,::-1])
+    with tifi.TiffWriter(args.predPath+'/'+os.path.splitext(img_name)[0] + '.tif') as tif:
+         options = dict(tile=(256, 256), compression='zlib')
+         tif.write(pred[:,:,::-1], subifds=2, **options)
+         tif.write(pred[::2,::2,::-1], subfiletype=1, **options)
+         tif.write(pred[::4,::4,::-1], subfiletype=1, **options)
+    #tifi.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.tif', pred[:,:,::-1])
 
     print('Quantify prevalence: ' + img_name)
     #read quantification config file
@@ -80,7 +85,12 @@ for img_name in img_name_arr:
                       1, (0,0,0), 2, cv2.LINE_AA) 
 
     print('Save quantification: ' + img_name)
-    tifi.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif', overlay[:,:,::-1])
+    with tifi.TiffWriter(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif') as tif:
+         options = dict(tile=(256, 256), compression='zlib')
+         tif.write(overlay[:,:,::-1], subifds=2, **options)
+         tif.write(overlay[::2,::2,::-1], subfiletype=1, **options)
+         tif.write(overlay[::4,::4,::-1], subfiletype=1, **options)
+    #tifi.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif', overlay[:,:,::-1])
 
     with open(args.outPath+'/'+os.path.splitext(img_name)[0] + '.csv', mode='w') as stat_file:
         stat_writer = csv.writer(stat_file, 
