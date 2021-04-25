@@ -168,6 +168,26 @@ def train(model,
                             epochs=epochs, callbacks=callbacks,
                             use_multiprocessing=gen_use_multiprocessing)
 
+    with open(checkpoints_path+'_iou.csv', 'w') as f:
+        if validate:
+            f.write("epoch\tmean_iou_train\tmean_iou_val\n")
+            for idx, (train_iou, val_iou) in enumerate(zip(history.history['mean_iou'],history.history['val_mean_iou'])):
+                f.write("{}\t{}\t{}\n".format(idx,train_iou,val_iou))
+        else:
+            f.write("epoch\tmean_IoU_train\n")
+            for idx, train_iou in enumerate(history.history['mean_iou']):
+                f.write("{}\t{}\n".format(idx,train_iou))
+
+    with open(checkpoints_path+'_loss.csv', 'w') as f:
+        if validate:
+            f.write("epoch\tloss_train\tloss_val\n")
+            for idx, (train_loss, val_loss) in enumerate(zip(history.history['loss'],history.history['val_loss'])):
+                f.write("{}\t{}\t{}\n".format(idx,train_loss,val_loss))
+        else:
+            f.write("epoch\tloss_train\n")
+            for idx, train_iou in enumerate(history.history['loss']):
+                f.write("{}\t{}\n".format(idx,train_loss))
+
     plt.plot(history.history['mean_iou'])
     if validate:
         plt.plot(history.history['val_mean_iou'])
