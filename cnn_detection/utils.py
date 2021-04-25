@@ -20,8 +20,8 @@ import numpy as np
 
 from random import shuffle
 
-from .image_segmentation_keras.keras_segmentation.predict import predict
-from .image_segmentation_keras.keras_segmentation.predict import visualize_segmentation
+from image_segmentation_keras.keras_segmentation.predict import predict
+from image_segmentation_keras.keras_segmentation.predict import visualize_segmentation
 
 def predictTiled(img, model):
     """
@@ -250,12 +250,18 @@ def rgbToLabel(ann_dir, out_dir):
     colors = [[0,255,0],[0,0,255],[255,0,0]]
 
     for ann_name in tqdm(ann_name_arr):
-        ann = cv2.imread(ann_dir+ann_name+".png",1)
+        print(ann_dir+ann_name+".png")
+        ann_color = cv2.imread(ann_dir+ann_name+".png",1)
+        ann = np.zeros(ann_color.shape, np.uint8)
+        ann.fill(255)
 
         for c in range(3):
-            ann[np.where(np.all(ann == colors[c], axis=-1))] = [c,c,c]
+            ann[np.where(np.all(ann_color == colors[c], axis=-1))] = [c,c,c]
         
-        cv2.imwrite("{}/{}.png".format(out_dir,ann_name), ann)
+        if 255 in ann:
+            print("Error in file: {}".format(ann_name))
+        else:
+            cv2.imwrite("{}/{}.png".format(out_dir,ann_name), ann)
 
 def onehotToRGB(onehot_mask):
     """
@@ -356,9 +362,11 @@ def clearAnnotations(img_dir, anno_dir):
         #cv2.imwrite(out_dir +img_name+".png", anno)
 
 if __name__ == "__main__":
-    #clearAnnotations("../dataset/tiled/filament/images/","../dataset/tiled/filament/annotations/")
-    #createSubimages("../dataset/tiled/raw/images/", "../dataset/tiled/raw/annotations/", "../dataset/tiled", relabel=False)
-    #splitTestTrain("../dataset/final/images/","../dataset/final/annotations/","../dataset/final/", 0.2)
+    #clearAnnotations("../../data/10x_nikon_aldehyd/filament/images","../../data/10x_nikon_aldehyd/filament/annotations/")
+    #createSubimages("../../data/10x_nikon_aldehyd/raw/images/", 
+    #                "../../data/10x_nikon_aldehyd/raw/annotations/", 
+    #                "../../data/10x_nikon_aldehyd/", relabel=False)
+    #splitTestTrain("../../data/final/images/","../../data/final/annotations/","../../data/final/", 0.2)
     #labelToRGB("../dataset/small/filter/annotations/", "../dataset/small/filter/annotaions_color/")
-    #rgbToLabel("../dataset/tiled/raw/annotations_color/","../dataset/tiled/raw/annotations/")
+    #rgbToLabel("../../data/10x_nikon_aldehyd/raw/annotations_color/","../../data/10x_nikon_aldehyd/raw/annotations/")
     pass
