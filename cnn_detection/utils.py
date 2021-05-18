@@ -20,8 +20,8 @@ import numpy as np
 
 from random import shuffle
 
-from image_segmentation_keras.keras_segmentation.predict import predict
-from image_segmentation_keras.keras_segmentation.predict import visualize_segmentation
+from .image_segmentation_keras.keras_segmentation.predict import predict
+from .image_segmentation_keras.keras_segmentation.predict import visualize_segmentation
 
 def predictTiled(img, model):
     """

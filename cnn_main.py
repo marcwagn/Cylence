@@ -11,7 +11,6 @@ o       o
 ########################################################
 """
 import os
-import tifffile as tifi
 import numpy as np
 import cv2
 import glob
@@ -35,7 +34,7 @@ parser.add_argument('--outPath', required=True, help='output folder analysis')
 args = parser.parse_args()
 
 #load model
-model = model_from_checkpoint_path("cnn_detection/model/vgg_unet_cross_aug_ep130/vgg_unet_cross")
+model = model_from_checkpoint_path("cnn_detection/model/vgg_unet_cross/vgg_unet_cross")
 
 #load input images from input folder
 if (args.inFile == None):
@@ -45,38 +44,32 @@ else:
     img_name_arr = [os.path.basename(args.inFile)]
     inPath = os.path.dirname(args.inFile)
 
-for img_name in img_name_arr:
+for img_name in tqdm(img_name_arr):
     print('Read image: ' + img_name)
-    img = tifi.imread(inPath+'/'+img_name)
-    img = img[:,:,::-1].copy()
+    img = cv2.imread(inPath+'/'+img_name)
 
     print('Create segmentation map: ' + img_name)
     pred = predictTiled(img,model)
 
     print('Save segmentation map: ' + img_name)
-    #with tifi.TiffWriter(args.predPath+'/'+os.path.splitext(img_name)[0] + '.tif') as tif:
-    #    options = dict(tile=(256, 256), compression='zlib')
-    #    tif.write(pred[:,:,::-1], subifds=2, **options)
-    #    tif.write(pred[::2,::2,::-1], subfiletype=1, **options)
-    #    tif.write(pred[::4,::4,::-1], subfiletype=1, **options)
-    tifi.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.tif', pred[:,:,::-1])
+    cv2.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.png', pred)
 
     print('Quantify prevalence: ' + img_name)
-    #read quantification config file
+
     config = configparser.ConfigParser()
     config.read('quantification/config.ini')
     para = config['hyperparameter']
 
     num_filaments, num_infected_filaments = quantify(img, pred, para)
+
     if num_filaments == 0:
         prev_of_infection = 0
     else:
         prev_of_infection = num_infected_filaments / num_filaments
 
-    #create overlay
+    print('create overlay')
     overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0)
 
-    #add text
     res = cv2.putText(overlay, 'num. detected filaments = ' + str(num_filaments), 
                       (10,40), cv2.FONT_HERSHEY_SIMPLEX,
                       1, (0,0,0), 2, cv2.LINE_AA) 
@@ -85,12 +78,7 @@ for img_name in img_name_arr:
                       1, (0,0,0), 2, cv2.LINE_AA) 
 
     print('Save quantification: ' + img_name)
-    #with tifi.TiffWriter(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif') as tif:
-    #    options = dict(tile=(256, 256), compression='zlib')
-    #    tif.write(overlay[:,:,::-1], subifds=2, **options)
-    #    tif.write(overlay[::2,::2,::-1], subfiletype=1, **options)
-    #    tif.write(overlay[::4,::4,::-1], subfiletype=1, **options)
-    tifi.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.tif', overlay[:,:,::-1])
+    cv2.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.png', overlay)
 
     with open(args.outPath+'/'+os.path.splitext(img_name)[0] + '.csv', mode='w') as stat_file:
         stat_writer = csv.writer(stat_file, 

@@ -1,12 +1,14 @@
-import sys
-sys.path.insert(1, '/home/marc/Dropbox/WiSe1920/MA_thesis/03_KERAS_detection/image-segmentation-keras')
+import os, sys
+currentdir = os.path.dirname(os.path.realpath(__file__))
+parentdir = os.path.dirname(currentdir)
+sys.path.append(parentdir)
 
 import csv
 import matplotlib.pyplot as plt
 
 def analysePerformance(pathModel, maxCheckpoints, testDataPath, outFile):
-    from keras_segmentation.predict import model_from_checkpoint_path
-    from keras_segmentation.predict import evaluate
+    from image_segmentation_keras.keras_segmentation.predict import model_from_checkpoint_path
+    from image_segmentation_keras.keras_segmentation.predict import evaluate
 
     with open(outFile, 'w', newline='\n') as csvfile:
         spamwriter = csv.writer(csvfile, delimiter='\t',
@@ -55,5 +57,8 @@ def plotPerformance(inFile, outFile):
     plt.savefig(outFile)
 
 if __name__ == "__main__":
-    #analysePerformance('../model/vgg_unet_focal_aug_ep40/vgg_unet_1', 30, '../dataset/small_tiled/full/','../results/performance/ep40/focal.csv')
-    plotPerformance('../results/performance/ep100/cross.csv','../results/performance/ep100/cross.png')
+    analysePerformance('../../../model/vgg_unet_cross_aug_ep200/vgg_unet_cross', 
+                        200, 
+                        '../../../data/final_pub/',
+                        '../../../results/performance/cross_200.csv')
+    #plotPerformance('../results/performance/ep100/cross.csv','../results/performance/ep100/cross.png')
