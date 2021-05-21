@@ -12,6 +12,7 @@ o       o
 """
 import os
 import numpy as np
+import pandas as pd
 import cv2
 import glob
 import argparse
@@ -29,64 +30,69 @@ parser = argparse.ArgumentParser(description='CNN based analysis')
 group = parser.add_mutually_exclusive_group(required=True)
 group.add_argument('--inPath', help='input folder')
 group.add_argument('--inFile', help='input file')
-parser.add_argument('--predPath', required=True, help='output folder prediction')
-parser.add_argument('--outPath', required=True, help='output folder analysis')
+parser.add_argument('--predPath', help='output folder prediction')
+parser.add_argument('--outPath', help='output folder analysis')
 args = parser.parse_args()
 
 #load model
 model = model_from_checkpoint_path("cnn_detection/model/vgg_unet_cross/vgg_unet_cross")
 
-#load input images from input folder
-if (args.inFile == None):
-    img_name_arr = [os.path.basename(x) for x in glob.glob(args.inPath+'/*')]
-    inPath = args.inPath
-else:
+#input: single file
+if (args.inFile is not None):
     img_name_arr = [os.path.basename(args.inFile)]
     inPath = os.path.dirname(args.inFile)
+
+    id_list = [os.path.splitext(img_name)[0] for img_name in img_name_arr]
+    stats = pd.DataFrame(id_list, columns =['ID'])
+
+#input: folder
+if (args.inPath is not None):
+    img_name_arr = [os.path.basename(x) for x in glob.glob(args.inPath+'/*.png')]
+    inPath = args.inPath
+
+    if (os.path.isfile(args.inPath + 'stats.csv')):
+        stats = pd.read_csv(args.inPath + 'stats.csv', sep=';', header = 0)
+    else:
+        id_list = [os.path.splitext(img_name)[0] for img_name in img_name_arr]
+        stats = pd.DataFrame(id_list, columns =['ID'])
+
+stats['COUNT_INF'] = 0
+stats['COUNT_TOTAL'] = 0
+stats = stats.set_index('ID')
+
 
 for img_name in tqdm(img_name_arr):
     print('Read image: ' + img_name)
     img = cv2.imread(inPath+'/'+img_name)
 
-    print('Create segmentation map: ' + img_name)
+    #Step 1: create segmentation map
     pred = predictTiled(img,model)
 
-    print('Save segmentation map: ' + img_name)
-    cv2.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.png', pred)
+    if(args.predPath is not None):
+        cv2.imwrite(args.predPath+'/'+os.path.splitext(img_name)[0] + '.png', pred)
 
-    print('Quantify prevalence: ' + img_name)
-
+    
+    #Step 2: Quantify Filaments/Infection
     config = configparser.ConfigParser()
     config.read('quantification/config.ini')
     para = config['hyperparameter']
 
     num_filaments, num_infected_filaments = quantify(img, pred, para)
+    stats.loc[os.path.splitext(img_name)[0],'COUNT_INF'] = num_infected_filaments
+    stats.loc[os.path.splitext(img_name)[0], 'COUNT_TOTAL'] = num_filaments
 
-    if num_filaments == 0:
-        prev_of_infection = 0
-    else:
-        prev_of_infection = num_infected_filaments / num_filaments
+    if (args.outPath is not None):
+        overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0)
 
-    print('create overlay')
-    overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0)
+        res = cv2.putText(overlay, 'num. detected filaments = ' + str(num_filaments), 
+                          (10,40), cv2.FONT_HERSHEY_SIMPLEX,
+                          1, (0,0,0), 2, cv2.LINE_AA) 
+        res = cv2.putText(overlay, 'num. infected filaments = ' + str(num_infected_filaments), 
+                          (10,80), cv2.FONT_HERSHEY_SIMPLEX,
+                          1, (0,0,0), 2, cv2.LINE_AA) 
 
-    res = cv2.putText(overlay, 'num. detected filaments = ' + str(num_filaments), 
-                      (10,40), cv2.FONT_HERSHEY_SIMPLEX,
-                      1, (0,0,0), 2, cv2.LINE_AA) 
-    res = cv2.putText(overlay, 'num. infected filaments = ' + str(num_infected_filaments), 
-                      (10,80), cv2.FONT_HERSHEY_SIMPLEX,
-                      1, (0,0,0), 2, cv2.LINE_AA) 
+        cv2.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.png', overlay)
 
-    print('Save quantification: ' + img_name)
-    cv2.imwrite(args.outPath+'/'+os.path.splitext(img_name)[0] + '.png', overlay)
 
-    with open(args.outPath+'/'+os.path.splitext(img_name)[0] + '.csv', mode='w') as stat_file:
-        stat_writer = csv.writer(stat_file, 
-                                 delimiter=',', 
-                                 quotechar='"', 
-                                 quoting=csv.QUOTE_MINIMAL)
-        stat_writer.writerow(['file_name', 'detected_filaments', 'infected_filaments', 'PoI'])
-        stat_writer.writerow([os.path.splitext(img_name)[0],
-                              num_filaments, 
-                              num_infected_filaments,
-                              prev_of_infection])
+#Step 3: write Stats
+stats.to_csv(args.inPath + '/results.csv', sep=';')

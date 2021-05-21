@@ -46,8 +46,8 @@ def predictTiled(img, model):
     if (h_img % 480 != 0):
         h_pos.append(h_img-480)
     
-    for w_iter in tqdm(w_pos):
-        for h_iter in tqdm(h_pos):
+    for w_iter in w_pos:
+        for h_iter in h_pos:
             sub_img = img[h_iter:h_iter+480,w_iter:w_iter+640,:]
 
             sub_pred = predict(model,inp=sub_img)
