@@ -37,13 +37,14 @@ def predictTiled(img, model):
 
     if (h_img < 480) or (w_img < 640):
         raise ValueError("Image size too small for model!")
+    
+    overlap = 50
+    w_pos = list(range(0, (w_img-640)+1, 640 - (2 * overlap)))
+    h_pos = list(range(0,(h_img-480)+1, 480 - (2 * overlap)))
 
-    w_pos = list(range(0, (w_img-640)+1, 640))
-    h_pos = list(range(0,(h_img-480)+1,480))
-
-    if (w_img % 640 != 0):
+    if (w_img % (640 - (2 * overlap)) != 0):
         w_pos.append(w_img-640)
-    if (h_img % 480 != 0):
+    if (h_img % (480 - (2 * overlap)) != 0):
         h_pos.append(h_img-480)
     
     for w_iter in w_pos:
@@ -52,9 +53,19 @@ def predictTiled(img, model):
 
             sub_pred = predict(model,inp=sub_img)
             sub_pred = cv2.resize(sub_pred,(640,480), interpolation = cv2.INTER_NEAREST)
-
             sub_pred_img = visualize_segmentation(sub_pred,n_classes=3,colors=[(0,255,0),(0,0,255),(255,0,0)])
-            pred_img[h_iter:h_iter+480,w_iter:w_iter+640,:] = sub_pred_img
+
+            top = h_iter if h_iter == 0 else h_iter + overlap
+            bottom = h_iter+480 if h_iter == (h_img-480) else h_iter + (480-overlap)
+            left = w_iter if w_iter == 0 else w_iter+overlap
+            right = w_iter+640 if w_iter == (w_img-640) else w_iter+(640-overlap)
+
+            pred_img[top:bottom,left:right] = sub_pred_img[top-h_iter:bottom-h_iter,left-w_iter:right-w_iter]
+            
+            #if (w_iter == 0 or h_iter == 0 or w_iter == (w_img-640) or h_iter == (h_img-480)):
+            #    pred_img[h_iter:h_iter+480,w_iter:w_iter+640,:] = sub_pred_img
+            #else:
+            #    pred_img[h_iter+overlap:h_iter+(480-overlap),w_iter+overlap:w_iter+(640-overlap),:] = sub_pred_img[overlap:480-overlap, overlap:640-overlap,:]
 
     return pred_img
 

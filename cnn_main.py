@@ -44,6 +44,7 @@ if (args.inFile is not None):
 
     id_list = [os.path.splitext(img_name)[0] for img_name in img_name_arr]
     stats = pd.DataFrame(id_list, columns =['ID'])
+    stats_file_found = False
 
 #input: folder
 if (args.inPath is not None):
@@ -52,9 +53,11 @@ if (args.inPath is not None):
 
     if (os.path.isfile(args.inPath + 'stats.csv')):
         stats = pd.read_csv(args.inPath + 'stats.csv', sep=';', header = 0)
+        stats_file_found = True
     else:
         id_list = [os.path.splitext(img_name)[0] for img_name in img_name_arr]
         stats = pd.DataFrame(id_list, columns =['ID'])
+        stats_file_found = False
 
 stats['COUNT_INF'] = 0
 stats['COUNT_TOTAL'] = 0
@@ -81,7 +84,13 @@ for img_name in tqdm(img_name_arr):
     stats.loc[os.path.splitext(img_name)[0],'COUNT_INF'] = num_infected_filaments
     stats.loc[os.path.splitext(img_name)[0], 'COUNT_TOTAL'] = num_filaments
 
-    if (args.outPath is not None):
+    check_img = True
+    if (stats_file_found):
+        if ( stats.loc[os.path.splitext(img_name)[0],'COUNT_INF'] == stats.loc[os.path.splitext(img_name)[0],'NUM_INF'] or
+             stats.loc[os.path.splitext(img_name)[0],'COUNT_TOTAL'] == stats.loc[os.path.splitext(img_name)[0],'NUM_TOTAL']):
+            check_img = False
+
+    if (args.outPath is not None and check_img == True):
         overlay = cv2.addWeighted(pred, 0.1,img, 0.9,0)
 
         res = cv2.putText(overlay, 'num. detected filaments = ' + str(num_filaments), 
@@ -95,4 +104,9 @@ for img_name in tqdm(img_name_arr):
 
 
 #Step 3: write Stats
-stats.to_csv(args.inPath + '/results.csv', sep=';')
+if (args.inPath is not None):
+    stats.to_csv(args.inPath + '/results.csv', sep=';')
+
+if (args.inFile is not None):
+    print("filaments = {}; infected = {}".format(stats.loc[os.path.splitext(img_name)[0], 'COUNT_TOTAL'],
+                                                    stats.loc[os.path.splitext(img_name)[0],'COUNT_INF']))
