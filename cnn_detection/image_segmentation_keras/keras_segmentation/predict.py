@@ -260,3 +260,57 @@ def evaluate(model=None, inp_images=None, annotations=None,
         "mean_IU": mean_IU,
         "class_wise_IU": cl_wise_score
     }
+
+def evaluate_annotation(model=None, annotations_dir=None, annotations_dir_2=None):
+
+    assert (model is not None),\
+            "Please provide model"
+    assert (annotations_dir is not None),\
+        "Please provide annotations_dir"
+    assert (annotations_dir_2 is not None),\
+        "Please provide annotations_dir_2"
+
+    paths = get_pairs_from_paths(annotations_dir, annotations_dir_2)
+    paths = list(zip(*paths))
+    annotations = list(paths[0])
+    annotations_2 = list(paths[1])
+
+    assert type(annotations) is list
+    assert type(annotations_2) is list
+
+    tp = np.zeros(model.n_classes)
+    fp = np.zeros(model.n_classes)
+    fn = np.zeros(model.n_classes)
+    n_pixels = np.zeros(model.n_classes)
+
+    for ann, ann_2 in tqdm(zip(annotations, annotations_2)):
+        pr = get_segmentation_array(ann_2, model.n_classes,
+                                    model.output_width, model.output_height,
+                                    no_reshape=True)
+        gt = get_segmentation_array(ann, model.n_classes,
+                                    model.output_width, model.output_height,
+                                    no_reshape=True)
+        
+        gt = gt.argmax(-1)
+        pr = pr.argmax(-1)
+
+        pr = pr.flatten()
+        gt = gt.flatten()
+
+        for cl_i in range(model.n_classes):
+
+            tp[cl_i] += np.sum((pr == cl_i) * (gt == cl_i))
+            fp[cl_i] += np.sum((pr == cl_i) * ((gt != cl_i)))
+            fn[cl_i] += np.sum((pr != cl_i) * ((gt == cl_i)))
+            n_pixels[cl_i] += np.sum(gt == cl_i)
+
+    cl_wise_score = tp / (tp + fp + fn + 0.000000000001)
+    n_pixels_norm = n_pixels / np.sum(n_pixels)
+    frequency_weighted_IU = np.sum(cl_wise_score*n_pixels_norm)
+    mean_IU = np.mean(cl_wise_score)
+
+    return {
+        "frequency_weighted_IU": frequency_weighted_IU,
+        "mean_IU": mean_IU,
+        "class_wise_IU": cl_wise_score
+    }

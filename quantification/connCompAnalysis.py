@@ -6,6 +6,8 @@ import itertools
 from skimage.morphology import skeletonize
 from skimage.draw import line
 
+from matplotlib.pyplot import cm
+
 from scipy import signal
 
 from .leastSquareAnalysis import *
@@ -214,12 +216,17 @@ class ConnCompAnalysis():
             size_vec = [-1,0,1]
         else:
             size_vec = [0]
+        color_lst = [(255, 0, 0),(0, 255, 0),(0, 0, 255),
+                     (255, 128, 0),(128, 255, 0),(128, 0, 255),
+                     (255, 0, 128),(128, 0, 128),(0, 128, 255),
+                     (0, 255, 255),(255, 0, 255),(255, 255, 0)]
+        color_iter = iter(color_lst * self.G.number_of_edges())
 
         #draw edges
         h, w, _ = img.shape
         for _,_,edata in self.G.edges(data=True):
             if edata['points'] != None:
-                color = self.randomColor()
+                color = list(next(color_iter))
                 for y_neig in size_vec:
                     for x_neig in size_vec:
                         y = np.clip(edata['points'][0] + y_neig,0,h-1)

@@ -35,7 +35,7 @@ parser.add_argument('--outPath', help='output folder analysis')
 args = parser.parse_args()
 
 #load model
-model = model_from_checkpoint_path("cnn_detection/model/vgg_unet_cross/vgg_unet_cross")
+model = model_from_checkpoint_path("cnn_detection/model/vgg_unet_cross/vgg_unet")
 
 #input: single file
 if (args.inFile is not None):
@@ -86,7 +86,7 @@ for img_name in tqdm(img_name_arr):
 
     check_img = True
     if (stats_file_found):
-        if ( stats.loc[os.path.splitext(img_name)[0],'COUNT_INF'] == stats.loc[os.path.splitext(img_name)[0],'NUM_INF'] or
+        if ( stats.loc[os.path.splitext(img_name)[0],'COUNT_INF'] == stats.loc[os.path.splitext(img_name)[0],'NUM_INF'] and
              stats.loc[os.path.splitext(img_name)[0],'COUNT_TOTAL'] == stats.loc[os.path.splitext(img_name)[0],'NUM_TOTAL']):
             check_img = False
 

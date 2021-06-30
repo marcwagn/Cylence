@@ -23,6 +23,9 @@ from random import shuffle
 from .image_segmentation_keras.keras_segmentation.predict import predict
 from .image_segmentation_keras.keras_segmentation.predict import visualize_segmentation
 
+#from image_segmentation_keras.keras_segmentation.predict import predict
+#from image_segmentation_keras.keras_segmentation.predict import visualize_segmentation
+
 def predictTiled(img, model):
     """
     Args:
@@ -378,6 +381,6 @@ if __name__ == "__main__":
     #                "../../data/10x_nikon_aldehyd/raw/annotations/", 
     #                "../../data/10x_nikon_aldehyd/", relabel=False)
     #splitTestTrain("../../data/final/images/","../../data/final/annotations/","../../data/final/", 0.2)
-    #labelToRGB("../dataset/small/filter/annotations/", "../dataset/small/filter/annotaions_color/")
-    #rgbToLabel("../../data/10x_nikon_aldehyd/raw/annotations_color/","../../data/10x_nikon_aldehyd/raw/annotations/")
+    #labelToRGB("../../data/maximal_IoU/default_annotations/", "../../data/maximal_IoU/default_annotations_color/")
+    #rgbToLabel("../../data/maximal_IoU/reannotations_color/","../../data/maximal_IoU/reannotations/")
     pass

@@ -26,6 +26,18 @@ def analysePerformance(pathModel, maxCheckpoints, testDataPath, outFile):
                                  str(para['class_wise_IU'][1]),
                                  str(para['class_wise_IU'][2])])
 
+def analyseAnnotation(pathModel, annotations_dir, annotations_dir_2):
+    from image_segmentation_keras.keras_segmentation.predict import model_from_checkpoint_path
+    from image_segmentation_keras.keras_segmentation.predict import evaluate_annotation
+
+    model = model_from_checkpoint_path(pathModel)
+
+    para = evaluate_annotation(model,
+                            annotations_dir= annotations_dir,
+                            annotations_dir_2=annotations_dir_2)
+
+    print(para)
+
 def plotPerformance(inFile, outFile):
     with open(inFile, newline='\n') as csvfile:
         spamreader = csv.reader(csvfile, delimiter='\t', quotechar='|')
@@ -57,8 +69,12 @@ def plotPerformance(inFile, outFile):
     plt.savefig(outFile)
 
 if __name__ == "__main__":
-    analysePerformance('../../../model/vgg_unet_cross_aug_ep200/vgg_unet_cross', 
-                        200, 
-                        '../../../data/final_pub/',
-                        '../../../results/performance/cross_200.csv')
+    pass
+    #analyseAnnotation('../model/vgg_unet_cross/vgg_unet_cross',
+    #                    '../../../data/maximal_IoU/reannotations',
+    #                    '../../../data/maximal_IoU/default_annotations')
+    #analysePerformance('../../../model/vgg_unet_cross_aug_ep200/vgg_unet_cross', 
+    #                    200, 
+    #                    '../../../data/final_pub/',
+    #                    '../../../results/performance/cross_200.csv')
     #plotPerformance('../results/performance/ep100/cross.csv','../results/performance/ep100/cross.png')

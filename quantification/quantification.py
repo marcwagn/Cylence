@@ -71,6 +71,7 @@ def quantify(img, pred, para):
 
         my_cnnCmp.resolveEvenHyperNodes()
         my_cnnCmp.resolveOddNodes()
+        my_cnnCmp.visualizeGraph(sub_img,bold=False)
         
         my_cnnCmp.removeUnresolved()
 
@@ -83,7 +84,7 @@ def quantify(img, pred, para):
             num_filaments += newFila
             num_infected_filaments += newInf
         
-        my_cnnCmp.visualizeGraph(sub_img)
+        #my_cnnCmp.visualizeGraph(sub_img)
     
     return num_filaments, num_infected_filaments
 
